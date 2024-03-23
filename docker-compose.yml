@@ -1,0 +1,78 @@
+# define version 
+version: "3.9"
+# define network
+networks:
+  laravel:
+  
+# Server Service 
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_container
+    ports:
+      - "8080:80" # local_port:docker_port
+    volumes:
+      - ./Backend:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/ # To get the nginx conf file
+    depends_on: 
+      - backend
+      - frontend
+      - db
+    networks: # optional network
+      - laravel 
+
+  # Database service 
+  db:
+    image: mysql:8.2.0
+    container_name: mysql_container
+    restart: unless-stopped
+    tty: true  # to access std input output ( By default its true)
+    volumes: 
+      - ./mysql/data:/var/lib/mysql
+    ports: 
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE : laravel_tmp
+      MYSQL_USER : tahsin
+      MYSQL_PASSWORD : password
+      MYSQL_ROOT_PASSWORD : password
+      # SERVICE_TAGS : dev # optional 
+      # SERVICE_NAME : mysql
+    networks: 
+      - laravel
+
+  # phpMyAdmin Service
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest # registry/user/image - docker-hub(registry)/phpMyadmin(user)/phpMyadmin(image)
+    restart: unless-stopped
+    ports: 
+      - "3400:80"
+    depends_on: 
+      - db
+    networks: 
+      - laravel
+  # php service 
+  backend: 
+    build:
+      dockerfile: Docker/php/Dockerfile
+    container_name: php_container
+    volumes: 
+      - ./Backend:/var/www
+      - /var/www/vendor # To set the vendor volume
+    ports: 
+      - "9000:9000"
+    networks: 
+      - laravel
+  frontend:
+    build:
+      context: .
+      dockerfile: Docker/npm/Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./Frontend/TD:/var/www/frontend
+    networks: 
+      - laravel
+
+
